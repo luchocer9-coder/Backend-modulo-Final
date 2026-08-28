@@ -1,5 +1,6 @@
 import { registerUser, getUserByEmail } from '../repositories/users.repository.js';
-import { hashPassword } from '../utils/hash.js';
+import { hashPassword, comparePassword } from '../utils/hash.js';
+import { generateToken } from '../utils/jwt.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -49,4 +50,35 @@ export const register = async ({ first_name, last_name, email, password }) => {
         email: newUser.email,
         role: newUser.role,
     };
+};
+
+export const login = async ({ email, password }) => {
+    // 1. Validar presencia de campos
+    if (!email || !password) {
+        throw { status: 400, message: 'Faltan campos obligatorios' };
+    }
+
+    // 2. Normalizar email (mismo criterio que en el registro)
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // 3. Buscar usuario por email
+    const user = await getUserByEmail(normalizedEmail);
+    if (!user) {
+        throw { status: 401, message: 'Credenciales inválidas' };
+    }
+
+    // 4. Comparar contraseña
+    const isPasswordValid = await comparePassword(password, user.password);
+    if (!isPasswordValid) {
+        throw { status: 401, message: 'Credenciales inválidas' };
+    }
+
+    // 5. Generar el token con datos mínimos (sin password)
+    const token = generateToken({
+        id: user._id,
+        email: user.email,
+        role: user.role,
+    });
+
+    return token;
 };
