@@ -178,3 +178,29 @@ Requiere la cookie `currentUser` (se envía automáticamente tras el login).
     "message": "Sesión cerrada"
 }
 \`\`\`
+
+## Autenticación con Passport.js
+
+A partir de esta entrega, la autenticación está centralizada mediante estrategias de Passport.js, definidas en `src/config/passport.config.js`. El comportamiento de la API (rutas y respuestas) no cambia respecto a la entrega anterior — solo mejora la organización interna del código.
+
+### Estrategias implementadas
+
+- **`register`** (basada en `passport-local`): valida los campos del registro, normaliza el email, verifica que no exista un usuario duplicado, hashea la contraseña con bcrypt y crea el usuario.
+- **`login`** (basada en `passport-local`): busca el usuario por email y compara la contraseña con bcrypt. Responde siempre con un mensaje genérico ("Credenciales inválidas") si el usuario no existe o la contraseña es incorrecta.
+- **`current`** (basada en `passport-jwt`): extrae el JWT desde la cookie `currentUser`, lo verifica contra `JWT_SECRET` y expone el payload en `req.user`.
+
+El JWT se genera y la cookie se setea en el **controller**, no en las estrategias — Passport solo se encarga de validar credenciales.
+
+### Preparado para futuros providers
+
+`passport.config.js` está estructurado para agregar nuevas estrategias (por ejemplo, Google OAuth o GitHub) simplemente sumando un nuevo `passport.use(...)`, sin necesidad de modificar `app.js` ni las rutas existentes.
+
+## Variables de entorno
+
+\`\`\`
+PORT=8080
+NODE_ENV=development
+MONGO_URL=
+JWT_SECRET=
+JWT_EXPIRES_IN=1h
+\`\`\`
