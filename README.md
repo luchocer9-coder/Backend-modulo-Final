@@ -204,3 +204,41 @@ MONGO_URL=
 JWT_SECRET=
 JWT_EXPIRES_IN=1h
 \`\`\`
+
+## Roles y autorización
+
+El sistema implementa autorización basada en roles. El campo `role` del modelo `User` puede tomar los valores `user`, `organizer` o `admin`, con `user` como valor por defecto. El registro público (`POST /api/sessions/register`) **no permite** setear `role` desde el body — siempre se asigna `user`, y el ascenso a `organizer` o `admin` se hace manualmente en la base de datos (por un administrador).
+
+### Matriz de permisos
+
+| Acción                              | user | organizer | admin |
+|--------------------------------------|:----:|:---------:|:-----:|
+| Consultar eventos publicados         | ✅   | ✅        | ✅    |
+| Crear eventos                        | ❌   | ✅        | ✅    |
+| Modificar/cancelar eventos propios   | ❌   | ✅        | ✅    |
+| Modificar cualquier evento           | ❌   | ❌        | ✅    |
+| Ver todos los usuarios               | ❌   | ❌        | ✅    |
+
+### Diferencia entre 401 y 403
+
+- **401 (No autenticado):** no hay sesión válida (falta la cookie, el token es inválido o expiró). El sistema no sabe quién sos.
+- **403 (Prohibido):** hay una sesión válida, el sistema sabe quién sos, pero tu rol (o la propiedad del recurso) no te habilita a realizar esa acción específica.
+
+### Middlewares
+
+- **`middlewares/passport.middleware.js` (`authenticateCurrent`):** valida el JWT desde la cookie `currentUser`. Si no hay sesión válida, responde 401.
+- **`middlewares/authorize.middleware.js` (`authorize(...roles)`):** middleware reutilizable que recibe los roles permitidos como parámetros y los compara contra `req.user.role`. Si no coincide, responde 403. Ejemplo de uso: `authorize('organizer', 'admin')`.
+
+### Rutas protegidas
+
+| Método | Ruta               | Protección                                      |
+|--------|--------------------|--------------------------------------------------|
+| GET    | /api/events        | Pública                                          |
+| POST   | /api/events        | Autenticado + rol `organizer` o `admin`          |
+| PUT    | /api/events/:id    | Autenticado + rol `organizer`/`admin` + dueño del evento (o `admin`) |
+| GET    | /api/users         | Autenticado + rol `admin`                        |
+| GET    | /api/sessions/current | Solo autenticado                              |
+
+### Propiedad de recursos
+
+Al modificar un evento (`PUT /api/events/:id`), el sistema valida que quien hace la request sea el `organizer` que creó ese evento específico, o bien tenga rol `admin` (que puede modificar cualquier evento). Esta validación vive en `services/events.service.js`.

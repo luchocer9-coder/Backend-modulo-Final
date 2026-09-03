@@ -7,3 +7,7 @@ export const createUser = async (userData) => {
 export const findUserByEmail = async (email) => {
     return await User.findOne({ email });
 };
+
+export const findAllUsers = async () => {
+    return await User.find().select('-password');
+};
