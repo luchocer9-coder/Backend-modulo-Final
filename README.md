@@ -300,3 +300,51 @@ Respuesta:
 - No se puede publicar un evento que ya está `finished` o `cancelled`.
 - Un `organizer` solo puede modificar sus propios eventos; `admin` puede modificar cualquiera.
 - Los eventos nunca se eliminan físicamente: cancelar un evento significa cambiar su `status` a `cancelled`.
+
+## Tickets e inscripciones
+
+### Modelo Ticket
+
+| Campo | Tipo | Detalle |
+|---|---|---|
+| user | ObjectId (ref User) | Referencia al usuario inscripto |
+| event | ObjectId (ref Event) | Referencia al evento |
+| status | String | `confirmed` \| `pending` \| `cancelled` (default `confirmed`) |
+| quantity | Number | Cantidad de entradas (default 1) |
+| reservationCode | String | Código único generado al confirmar |
+| cancelledAt | Date | Se completa al cancelar |
+| createdAt / updatedAt | Date | Automáticos (timestamps) |
+
+### Rutas
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| POST | /api/events/:eid/tickets | autenticado |
+| GET | /api/tickets/my-tickets | autenticado (propios) |
+| GET | /api/events/:eid/tickets | organizer (dueño del evento) o admin |
+| PATCH | /api/tickets/:tid/cancel | dueño del ticket o admin |
+
+### Flujo de inscripción
+
+1. Se valida que el evento exista y esté en estado `published` (no `draft`, `cancelled` ni `finished`).
+2. Se valida que `quantity` sea un número mayor a 0.
+3. Se valida que el usuario no tenga ya una inscripción activa para ese evento (una inscripción activa por usuario).
+4. Se calculan los cupos ocupados (suma de `quantity` de todos los tickets **no cancelados** de ese evento) y se compara contra la `capacity` del evento.
+5. Si hay cupo suficiente, se crea el ticket con `status: "confirmed"` y un `reservationCode` único.
+6. Se envía un email de confirmación al usuario mediante Nodemailer.
+
+### Cancelación
+
+Cancelar un ticket cambia su `status` a `cancelled` y completa `cancelledAt` con la fecha actual. **El documento nunca se elimina.** Como el cálculo de cupos ocupados excluye los tickets cancelados, el cupo queda disponible automáticamente para nuevas inscripciones.
+
+### Variables de entorno para email (Nodemailer + Mailtrap)
+
+\`\`\`
+MAIL_HOST=
+MAIL_PORT=
+MAIL_USER=
+MAIL_PASS=
+MAIL_FROM=
+\`\`\`
+
+Se usa Mailtrap (Email Sandbox) como servidor SMTP de testing, para no enviar emails reales durante el desarrollo.
