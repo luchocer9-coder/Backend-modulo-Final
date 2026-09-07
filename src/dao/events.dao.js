@@ -8,8 +8,18 @@ export const findEventById = async (id) => {
     return await Event.findById(id);
 };
 
-export const findAllEvents = async () => {
-    return await Event.find();
+export const findEvents = async (filter, options) => {
+    const { page, limit, sort } = options;
+    const skip = (page - 1) * limit;
+
+    const events = await Event.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit);
+
+    const total = await Event.countDocuments(filter);
+
+    return { events, total };
 };
 
 export const updateEventById = async (id, updateData) => {

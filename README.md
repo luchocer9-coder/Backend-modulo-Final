@@ -242,3 +242,61 @@ El sistema implementa autorización basada en roles. El campo `role` del modelo 
 ### Propiedad de recursos
 
 Al modificar un evento (`PUT /api/events/:id`), el sistema valida que quien hace la request sea el `organizer` que creó ese evento específico, o bien tenga rol `admin` (que puede modificar cualquier evento). Esta validación vive en `services/events.service.js`.
+
+## Entidad Events
+
+### Modelo
+
+| Campo | Tipo | Detalle |
+|---|---|---|
+| title | String | Obligatorio |
+| description | String | Obligatorio |
+| category | String | Obligatorio |
+| date | Date | Obligatorio, no puede ser fecha pasada al crear |
+| location | String | Obligatorio |
+| capacity | Number | Obligatorio, debe ser > 0 |
+| price | Number | Opcional (default 0), no puede ser negativo |
+| status | String | `draft` \| `published` \| `cancelled` \| `finished` (default `draft`) |
+| organizer | ObjectId (ref User) | Se asigna automáticamente desde el usuario autenticado |
+
+### Rutas
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| POST | /api/events | organizer, admin |
+| GET | /api/events | público |
+| GET | /api/events/:id | público |
+| PUT | /api/events/:id | dueño del evento o admin |
+| PATCH | /api/events/:id/status | dueño del evento o admin |
+
+### Filtros y paginación (GET /api/events)
+
+Query params soportados:
+- `status`, `category`, `location`: filtro exacto
+- `dateFrom`, `dateTo`: rango de fechas
+- `page`, `limit`: paginación (default `page=1`, `limit=10`)
+- `sort`: ordenamiento, ej. `sort=date` (ascendente) o `sort=-date` (descendente)
+
+Ejemplo: `GET /api/events?status=published&category=workshop&page=1&limit=5`
+
+Respuesta:
+\`\`\`json
+{
+    "status": "success",
+    "data": [ ... ],
+    "page": 1,
+    "limit": 5,
+    "total": 1,
+    "totalPages": 1
+}
+\`\`\`
+
+### Reglas de negocio principales
+
+- El `organizer` de un evento se asigna automáticamente desde el usuario autenticado; nunca puede venir del body.
+- No se puede crear un evento con fecha pasada.
+- `capacity` debe ser mayor a 0; `price` no puede ser negativo.
+- Un evento cancelado no puede modificarse (ni sus datos ni su estado).
+- No se puede publicar un evento que ya está `finished` o `cancelled`.
+- Un `organizer` solo puede modificar sus propios eventos; `admin` puede modificar cualquiera.
+- Los eventos nunca se eliminan físicamente: cancelar un evento significa cambiar su `status` a `cancelled`.
