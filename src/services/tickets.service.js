@@ -11,6 +11,7 @@ import {
 import { getEventById } from '../repositories/events.repository.js';
 import { getUserById } from '../repositories/users.repository.js';
 import { sendTicketConfirmationEmail } from '../utils/mailer.js';
+import { ticketDTO } from '../dtos/ticket.dto.js';
 
 const generateReservationCode = () => {
     return crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -60,11 +61,12 @@ export const create = async (eventId, userId, quantity) => {
     const user = await getUserById(userId);
     await sendTicketConfirmationEmail(user.email, event.title, reservationCode);
 
-    return newTicket;
+    return ticketDTO(newTicket);
 };
 
 export const getMyTickets = async (userId) => {
-    return await getTicketsByUser(userId);
+    const tickets = await getTicketsByUser(userId);
+    return tickets.map(ticketDTO);
 };
 
 export const getByEvent = async (eventId, user) => {
@@ -80,7 +82,8 @@ export const getByEvent = async (eventId, user) => {
         throw { status: 403, message: 'No tenés permisos para ver las inscripciones de este evento' };
     }
 
-    return await getTicketsByEvent(eventId);
+    const tickets = await getTicketsByEvent(eventId);
+    return tickets.map(ticketDTO);
 };
 
 export const cancel = async (ticketId, user) => {
@@ -106,5 +109,5 @@ export const cancel = async (ticketId, user) => {
         cancelledAt: new Date(),
     });
 
-    return updatedTicket;
+    return ticketDTO(updatedTicket);
 };

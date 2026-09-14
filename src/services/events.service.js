@@ -1,4 +1,5 @@
 import { registerEvent, getEventById, getEvents, modifyEvent } from '../repositories/events.repository.js';
+import { eventDTO } from '../dtos/event.dto.js';
 
 const VALID_STATUSES = ['draft', 'published', 'cancelled', 'finished'];
 
@@ -36,7 +37,7 @@ export const create = async (eventData, organizerId) => {
         organizer: organizerId,
     });
 
-    return newEvent;
+    return eventDTO(newEvent);
 };
 
 export const getAll = async (queryParams) => {
@@ -71,7 +72,7 @@ export const getAll = async (queryParams) => {
     });
 
     return {
-        data: events,
+        data: events.map(eventDTO),
         page: pageNumber,
         limit: limitNumber,
         total,
@@ -84,7 +85,7 @@ export const getById = async (id) => {
     if (!event) {
         throw { status: 404, message: 'Evento no encontrado' };
     }
-    return event;
+    return eventDTO(event);
 };
 
 export const update = async (eventId, updateData, user) => {
@@ -114,7 +115,7 @@ export const update = async (eventId, updateData, user) => {
     }
 
     const updatedEvent = await modifyEvent(eventId, updateData);
-    return updatedEvent;
+    return eventDTO(updatedEvent);
 };
 
 export const updateStatus = async (eventId, newStatus, user) => {
@@ -144,5 +145,5 @@ export const updateStatus = async (eventId, newStatus, user) => {
     }
 
     const updatedEvent = await modifyEvent(eventId, { status: newStatus });
-    return updatedEvent;
+    return eventDTO(updatedEvent);
 };

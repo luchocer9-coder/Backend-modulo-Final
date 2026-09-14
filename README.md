@@ -348,3 +348,31 @@ MAIL_FROM=
 \`\`\`
 
 Se usa Mailtrap (Email Sandbox) como servidor SMTP de testing, para no enviar emails reales durante el desarrollo.
+
+## Arquitectura en capas
+
+El proyecto está organizado siguiendo una arquitectura profesional en capas, donde cada una tiene una responsabilidad única y bien delimitada:
+
+### DAO (Data Access Object)
+Únicos archivos que importan modelos de Mongoose directamente (`src/dao/`). Exponen operaciones de acceso a datos puras: `findById`, `create`, `find`, `update`, `count`, sin ninguna lógica de negocio.
+
+### Repository
+Capa intermedia (`src/repositories/`) que usa los DAO correspondientes, nunca modelos directamente. Expone métodos orientados al dominio (`getUserByEmail`, `getOccupiedQuantity`, `modifyTicket`), sirviendo de puente entre el acceso a datos y la lógica de negocio.
+
+### Service
+Concentra toda la lógica de negocio (`src/services/`): validaciones de cupos, estados de eventos, duplicados de inscripción, permisos sobre recursos propios, generación de tokens, envío de emails. Consume repositories, nunca DAOs ni modelos de Mongoose directamente. Aplica los DTOs antes de devolver cualquier dato.
+
+### DTO (Data Transfer Object)
+`src/dtos/` contiene funciones que filtran los documentos de Mongoose antes de exponerlos en una respuesta HTTP. Existen DTOs para usuario (`userDTO`), evento (`eventDTO`) y ticket (`ticketDTO`). Ninguna respuesta de la API expone el campo `password`, ni siquiera hasheado. Cuando un documento viene con `populate` (por ejemplo, el evento dentro de un ticket), el DTO correspondiente también filtra esos datos relacionados.
+
+### Controller
+Solo coordina la request y la response (`src/controllers/`): extrae datos de `body`/`params`/`query`, llama al service correspondiente, y devuelve la respuesta o delega el error al middleware centralizado con `next(error)`. No contiene lógica de negocio ni importa modelos de Mongoose.
+
+### Manejo de errores centralizado
+`src/middlewares/errorHandler.middleware.js` es un middleware de 4 parámetros (`err, req, res, next`) conectado al final de `app.js`. Todos los controllers delegan sus errores ahí con `next(error)`, asegurando un formato de respuesta de error consistente en toda la API:
+
+\`\`\`json
+{ "status": "error", "message": "..." }
+\`\`\`
+
+Los códigos de estado se diferencian según el tipo de error: `400` (datos inválidos), `401` (no autenticado), `403` (sin permisos), `404` (no encontrado), `409` (conflicto), `500` (error interno).

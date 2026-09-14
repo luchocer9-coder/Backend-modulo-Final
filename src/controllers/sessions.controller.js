@@ -1,17 +1,8 @@
-import passport from '../config/passport.config.js';
 import { generateToken } from '../utils/jwt.js';
+import { userDTO } from '../dtos/user.dto.js';
 
 export const register = (req, res) => {
-    res.status(201).json({
-        status: 'success',
-        payload: {
-            id: req.user._id,
-            first_name: req.user.first_name,
-            last_name: req.user.last_name,
-            email: req.user.email,
-            role: req.user.role,
-        },
-    });
+    res.status(201).json({ status: 'success', payload: userDTO(req.user) });
 };
 
 export const login = (req, res) => {
@@ -34,11 +25,7 @@ export const login = (req, res) => {
 export const current = (req, res) => {
     res.status(200).json({
         status: 'success',
-        payload: {
-            id: req.user.id,
-            email: req.user.email,
-            role: req.user.role,
-        },
+        payload: { id: req.user.id, email: req.user.email, role: req.user.role },
     });
 };
 
