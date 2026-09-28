@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Ticket from '../models/Ticket.js';
 
 export const createTicket = async (ticketData) => {
@@ -22,12 +23,17 @@ export const findActiveTicketByUserAndEvent = async (userId, eventId) => {
 
 export const countActiveTicketsQuantity = async (eventId) => {
     const result = await Ticket.aggregate([
-        { $match: { event: eventId, status: { $ne: 'cancelled' } } },
+        {
+            $match: {
+                event: new mongoose.Types.ObjectId(eventId),
+                status: { $ne: 'cancelled' },
+            },
+        },
         { $group: { _id: null, totalQuantity: { $sum: '$quantity' } } },
     ]);
     return result.length > 0 ? result[0].totalQuantity : 0;
 };
 
 export const updateTicketById = async (id, updateData) => {
-    return await Ticket.findByIdAndUpdate(id, updateData, { new: true });
+    return await Ticket.findByIdAndUpdate(id, updateData, { returnDocument: 'after' });
 };

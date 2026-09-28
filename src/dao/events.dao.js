@@ -23,5 +23,5 @@ export const findEvents = async (filter, options) => {
 };
 
 export const updateEventById = async (id, updateData) => {
-    return await Event.findByIdAndUpdate(id, updateData, { new: true });
+    return await Event.findByIdAndUpdate(id, updateData, { returnDocument: 'after' });
 };
